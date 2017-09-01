@@ -5,7 +5,7 @@ To use this lib you must to do:
 * Download the SimpleAT.h and SimpleAT.c to your source code;
 * Implement the driver to read, write, check availability and open the UART module at your system;
 * Initialize the driver using the ATEngineDriverInit function passing the above mentioned functions related to the UART;
-* Define the command list exaclty as the line 42 at the below example. There, you must define the parameters (your function must receive from the command the types must be uintX_t, x can be 8, 16,32 and 64) and callback function that must be of type as shown at the example (```C void startClient(const uint16_t *args)```)
+* Define the command list as the below example. There, you must define the parameters (your function must receive from the command the types must be uintX_t, x can be 8, 16, 32 and 64) and callback function that must be of type as shown at the example (```void startClient(const uint16_t *args)```)
 * Initialize the AT engine passing the pointer to the command list the its size to the function ATEngineInit;
 * Run it in a nonblocking way by using the function ATEngineRun() that always returns true. It can be used at the condition of the while true or inside it.
 
@@ -89,6 +89,36 @@ int main(int argc, char **argv) {
 
 }
 ```
+## Using the interface
+### Basic test, no arguments and no command:
+```
+AT
+
+
+OK
+```
+### No arguments:
+```
+AT+START
+Starting chip...
+
+OK
+```
+### One argument:
+```
+AT+READ=265C,AF
+REG[265C] = 0xF1
+
+OK
+```
+### One argument:
+```
+AT+WRITE=265C,AF
+
+
+OK
+```
+
 ## Knwon limitations
 
 * The commands cannot begin with the same letter;
