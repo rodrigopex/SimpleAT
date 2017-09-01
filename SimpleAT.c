@@ -247,13 +247,11 @@ void ATEngineDriverInit(uint8_t (*open)(void),
 void ATEngineInit(ATCommandDescriptor *engine, uint8_t sizeOfEngine) {
     __engine = engine;
     for(int i = 0; i < sizeOfEngine; ++i) {
-        ATReplyWithString("Init size calculation\n");
         int j;
         for(j = 0; __engine[i].command[j] != '\0'; ++j);
         __engine[i].sizeOfCommand = (uint8_t)j;
         for(j = 0; __engine[i].argsSize[j] > 0; ++j);
         __engine[i].numberOfArgs = (uint8_t)j;
-        ATReplyWithString("Init size calculation\n");
     }
     __sizeOfEngine = sizeOfEngine;
     __open();
