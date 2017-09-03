@@ -8,7 +8,7 @@
 
 #define AT_NO_ARGS {0}
 #define AT_ARGS(...) {__VA_ARGS__, -1}
-#define AT_ARG(x) ((uint8_t) sizeof (x))
+#define AT_TYPE(x) ((uint8_t) sizeof (x))
 #define AT_COMMAND(name, args, client) {(char*)#name, 0, args , 0, client}
 
 #define ATReplyByteArray(x) ((uint8_t *) &x), sizeof(x)
