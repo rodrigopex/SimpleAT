@@ -310,3 +310,8 @@ void ATReplyWithString(char *str)
 {
     for(int i = 0; str[i] != '\0'; ++i) __write((uint8_t)str[i]);
 }
+
+void ATReplyWithChar(char c)
+{
+    __write(c);
+}

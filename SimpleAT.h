@@ -31,6 +31,7 @@ uint8_t ATEngineRun();
 void ATReplyWithByteArray(uint8_t *data, int size);
 void ATReplyWithByte(uint8_t data);
 void ATReplyWithString(char *str);
+void ATReplyWithChar(char c);
 
 
 
