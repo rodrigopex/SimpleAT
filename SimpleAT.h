@@ -4,6 +4,7 @@
 
 #define AT_MAX_NUMBER_OF_ARGS 4
 #define CLIENT_FUNCTION_TYPE uint16_t
+#define ECHO_MODE_ON 1
 
 #define AT_NO_ARGS {0}
 #define AT_ARGS(...) {__VA_ARGS__, -1}

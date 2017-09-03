@@ -1,12 +1,22 @@
 #include "SimpleAT.h"
-#include <stdio.h>
 static ATCommandDescriptor *__engine;
 static uint8_t __sizeOfEngine;
 
 #if 0
+#include<stdio.h>
 #define LOG(x) printf(x)
 #else
 #define LOG(x)
+#endif
+
+
+#if ECHO_MODE_ON
+#define SHOW_COMMAND()\
+    for(int i = 0; i < cmdIndex; i++) {\
+    __write(cmd[i]);\
+    }
+#else
+    #define SHOW_COMMAND()
 #endif
 
 /*Driver functions ---------------------*/
@@ -16,7 +26,6 @@ static void (*__write)(uint8_t);
 static uint8_t (*__available)(void);
 /*--------------------------------------*/
 
-#define SHOW_COMMAND() for(int i = 0; i < cmdIndex; i++) {printf("%c",cmd[i])}
 
 uint8_t ATConverterASCIIToUint8(uint8_t character) {
     switch (character) {
@@ -100,9 +109,7 @@ uint8_t ATCheckIsDigit(uint8_t character) {
 }
 
 #define ERROR() \
-    for(int i = 0; i < cmdIndex; i++) {\
-    __write(cmd[i]);\
-    }\
+    SHOW_COMMAND()\
     __write('\n');\
     __write('\n');\
     __write('E');\
@@ -114,9 +121,7 @@ uint8_t ATCheckIsDigit(uint8_t character) {
 
 
 #define OK() \
-    for(int i = 0; i < cmdIndex; i++) {\
-    __write(cmd[i]);\
-    }\
+    SHOW_COMMAND()\
     if(currentCommand >= 0)\
     (*__engine[currentCommand].client)(params);\
     __write('\n');\
