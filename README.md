@@ -106,8 +106,8 @@ OK
 ```
 ### One argument:
 ```
-AT+READ=265C,AF
-REG[265C] = 0xF1
+AT+READ=FA06
+REG[FA06] = 0xF1
 
 OK
 ```
