@@ -52,19 +52,27 @@ uint8_t StubRead() {
 
 void startClient(const uint16_t *args){
     (void) args;
-    ATReplyWithString("Results of %s...\n");
+    ATReplyWithString((char*)"Results of ");
+    ATReplyWithString((char*)__FUNCTION__);
 }
 
 void readClient(const uint16_t *args){
     uint16_t addr = args[0];
-    ATReplyWithString("Results of");
-    // %s, args: ADDR(%02X)\n", __FUNCTION__, addr);
+    ATReplyWithString((char*) "Results of ");
+	ATReplyWithString((char*)__FUNCTION__);
+    ATReplyWithString((char*) " ADDR: ");
+    ATReplyWithByteArray(ATReplyByteArray(addr));
 }
 
 void writeClient(const uint16_t *args){
     uint16_t addr = args[0];
     uint8_t value = (uint8_t) args[1];
-    ATReplyWithString("Results of"); // %s, args: ADDR(%02X) VALUE(%01X)\n", __FUNCTION__, addr, value);
+    ATReplyWithString((char*) "Results of ");
+    ATReplyWithString((char*)__FUNCTION__);
+    ATReplyWithString((char*) " ADDR: ");
+    ATReplyWithByteArray(ATReplyByteArray(addr));
+    ATReplyWithString((char*) " VALUE: ");
+    ATReplyWithByte(value);
 }
 
 int main(int argc, char **argv) {
@@ -78,8 +86,8 @@ int main(int argc, char **argv) {
 
     ATCommandDescriptor atEngine[] = {
         AT_COMMAND(START, AT_NO_ARGS, startClient),
-        AT_COMMAND(READ, AT_ARGS(AT_ARG(uint16_t)), readClient),
-        AT_COMMAND(WRITE, AT_ARGS(AT_ARG(uint16_t),AT_ARG(uint8_t)), writeClient)
+        AT_COMMAND(READ, AT_ARGS(AT_TYPE(uint16_t)), readClient),
+        AT_COMMAND(WRITE, AT_ARGS(AT_TYPE(uint16_t),AT_TYPE(uint8_t)), writeClient)
     };
     ATEngineInit(atEngine, 3);
     while(ATEngineRun()) {
