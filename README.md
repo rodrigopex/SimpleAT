@@ -1,4 +1,4 @@
-# SimpleAT
+# SimpleAT - 0.2
 Simple API to provide AT commands to embedded systems
 
 To use this lib you must to do:
