@@ -8,8 +8,9 @@
 #define AT_NO_ARGS {0}
 #define AT_ARGS(...) {__VA_ARGS__, -1}
 #define AT_ARG(x) ((uint8_t) sizeof (x))
-#define AT_COMMAND(name, args, client) {#name, 0, args , 0, client}
+#define AT_COMMAND(name, args, client) {(char*)#name, 0, args , 0, client}
 
+#define ATReplyByteArray(x) ((uint8_t *) &x), sizeof(x)
 
 typedef struct {
     char *command;
@@ -26,7 +27,8 @@ void ATEngineDriverInit(uint8_t (*open)(void),
 
 void ATEngineInit(ATCommandDescriptor *engine,  uint8_t sizeOfEngine);
 uint8_t ATEngineRun();
-void ATReplyWithByteArray(uint8_t *msg, int size);
+void ATReplyWithByteArray(uint8_t *data, int size);
+void ATReplyWithByte(uint8_t data);
 void ATReplyWithString(char *str);
 
 

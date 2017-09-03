@@ -1,5 +1,5 @@
 #include "SimpleAT.h"
-
+#include <stdio.h>
 static ATCommandDescriptor *__engine;
 static uint8_t __sizeOfEngine;
 
@@ -18,7 +18,7 @@ static uint8_t (*__available)(void);
 
 #define SHOW_COMMAND() for(int i = 0; i < cmdIndex; i++) {printf("%c",cmd[i])}
 
-uint8_t asciiToUint8(uint8_t character) {
+uint8_t ATConverterASCIIToUint8(uint8_t character) {
     switch (character) {
     case '0': return 0;
     case '1': return 1;
@@ -46,7 +46,32 @@ uint8_t asciiToUint8(uint8_t character) {
     }
 }
 
-uint8_t isDigit(uint8_t character) {
+
+
+uint8_t ATConvertHexToAscii(uint8_t character) {
+    switch (character) {
+    case 0: return '0';
+    case 1: return '1';
+    case 2: return '2';
+    case 3: return '3';
+    case 4: return '4';
+    case 5: return '5';
+    case 6: return '6';
+    case 7: return '7';
+    case 8: return '8';
+    case 9: return '9';
+    case 0xA: return 'A';
+    case 0xB: return 'B';
+    case 0xC: return 'C';
+    case 0xD: return 'D';
+    case 0xE: return 'E';
+    case 0xF: return 'F';
+    default: return 0;
+    }
+}
+
+
+uint8_t ATCheckIsDigit(uint8_t character) {
     switch (character) {
     case '0':
     case '1':
@@ -76,7 +101,7 @@ uint8_t isDigit(uint8_t character) {
 
 #define ERROR() \
     for(int i = 0; i < cmdIndex; i++) {\
-        __write(cmd[i]);\
+    __write(cmd[i]);\
     }\
     __write('\n');\
     __write('\n');\
@@ -90,10 +115,10 @@ uint8_t isDigit(uint8_t character) {
 
 #define OK() \
     for(int i = 0; i < cmdIndex; i++) {\
-        __write(cmd[i]);\
+    __write(cmd[i]);\
     }\
     if(currentCommand >= 0)\
-        (*__engine[currentCommand].client)(params);\
+    (*__engine[currentCommand].client)(params);\
     __write('\n');\
     __write('\n');\
     __write('O');\
@@ -194,7 +219,7 @@ void __stateMachineDigest(uint8_t current) {
         }
         break;
     }
-    case 5:
+    case 5: {
         LOG("State 5\n"); // get paramenters
         uint8_t sizeInBytes = (uint8_t) __engine[currentCommand].argsSize[currentParam]<<1;
         if(current == '\n') {
@@ -205,8 +230,8 @@ void __stateMachineDigest(uint8_t current) {
                 state = 0;
                 ERROR();
             }
-        } else if(isDigit(current) && currentParamIndex < sizeInBytes) {
-            params[currentParam] |= (uint32_t) asciiToUint8(current) << (4 * (sizeInBytes - currentParamIndex - 1));
+        } else if(ATCheckIsDigit(current) && currentParamIndex < sizeInBytes) {
+            params[currentParam] |= (uint32_t) ATConverterASCIIToUint8(current) << (4 * (sizeInBytes - currentParamIndex - 1));
             currentParamIndex++;
         } else if(currentParamIndex == sizeInBytes) {
             if(__engine[currentCommand].numberOfArgs > currentParam + 1) {
@@ -221,6 +246,7 @@ void __stateMachineDigest(uint8_t current) {
             }
         }else
             state = 255; //error
+    }
         break;
     case 255:
         if(current == '\n') { //cleaning input...
@@ -235,9 +261,9 @@ void __stateMachineDigest(uint8_t current) {
 }
 
 void ATEngineDriverInit(uint8_t (*open)(void),
-                          uint8_t (*read)(void),
-                          void (*write)(uint8_t),
-                          uint8_t (*available)(void)) {
+                        uint8_t (*read)(void),
+                        void (*write)(uint8_t),
+                        uint8_t (*available)(void)) {
     __open = open;
     __read = read;
     __write = write;
@@ -263,10 +289,16 @@ uint8_t ATEngineRun() {
     }
     return 1;
 }
+void ATReplyWithByte(uint8_t data) {
+    __write(ATConvertHexToAscii((data & 0xF0) >> 4));
+    __write(ATConvertHexToAscii(data & 0x0F));
+}
 
 void ATReplyWithByteArray(uint8_t *msg, int size)
 {
-    for(int i = 0; msg[i] < size; ++i) __write(msg[i]);
+    for(int i = size - 1; i >=0; --i) {
+        ATReplyWithByte(msg[i]);
+    }
 }
 
 void ATReplyWithString(char *str)
