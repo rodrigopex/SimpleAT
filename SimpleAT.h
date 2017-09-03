@@ -26,7 +26,7 @@ void ATEngineDriverInit(uint8_t (*open)(void),
 
 void ATEngineInit(ATCommandDescriptor *engine,  uint8_t sizeOfEngine);
 uint8_t ATEngineRun();
-void ATReply(uint8_t *msg, int size);
+void ATReplyWithByteArray(uint8_t *msg, int size);
 void ATReplyWithString(char *str);
 
 

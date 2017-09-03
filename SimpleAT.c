@@ -264,7 +264,7 @@ uint8_t ATEngineRun() {
     return 1;
 }
 
-void ATReply(uint8_t *msg, int size)
+void ATReplyWithByteArray(uint8_t *msg, int size)
 {
     for(int i = 0; msg[i] < size; ++i) __write(msg[i]);
 }
