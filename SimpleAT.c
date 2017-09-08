@@ -288,12 +288,17 @@ void ATEngineInit(ATCommandDescriptor *engine, uint8_t sizeOfEngine) {
     __open();
 }
 
-uint8_t ATEngineRun() {
+uint8_t ATEngineRun() { /* Used for polling way to do*/
     while(__available()) {
         __stateMachineDigest(__read());
     }
     return 1;
 }
+
+void ATHandle(uint8_t data) { /* Used for interrupt way to do*/
+    __stateMachineDigest(data);
+}
+
 void ATReplyWithByte(uint8_t data) {
     __write(ATConvertHexToAscii((data & 0xF0) >> 4));
     __write(ATConvertHexToAscii(data & 0x0F));
