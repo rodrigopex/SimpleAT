@@ -136,8 +136,9 @@ void __stateMachineDigest(uint8_t current) {
     static int8_t currentCommand = -1;
     static uint8_t currentCommandIndex = 0;
 
-    static uint16_t params[AT_MAX_NUMBER_OF_ARGS] = {0};
+    static uint8_t params[AT_MAX_NUMBER_OF_ARGS] = {0};
     static uint8_t currentParam;
+    static uint8_t currentParamCount = 0;
     static uint8_t currentParamIndex;
 
     static uint8_t cmd[50] = {0};
@@ -152,6 +153,7 @@ void __stateMachineDigest(uint8_t current) {
         LOG("State 0\n");
         currentCommand = -1;
         currentCommandIndex = 0;
+        for(int i = 0; i < AT_MAX_NUMBER_OF_ARGS; ++i) params[i] = 0; /* Cleanning up params variables*/
         if(current == 'A')
             state = 1;
         break;
@@ -215,6 +217,7 @@ void __stateMachineDigest(uint8_t current) {
             if(current == '=' && __engine[currentCommand].numberOfArgs > 0){
                 state = 5;
                 currentParam = 0;
+                currentParamCount = 0;
                 currentParamIndex = 0;
             } else {
                 state = 255;
@@ -226,7 +229,10 @@ void __stateMachineDigest(uint8_t current) {
     }
     case 5: {
         LOG("State 5\n"); // get paramenters
-        uint8_t sizeInBytes = (uint8_t) __engine[currentCommand].argsSize[currentParam]<<1;
+        uint8_t sizeOfParameter = (uint8_t)__engine[currentCommand].argsSize[currentParam];
+        uint8_t sizeInBytes = (uint8_t)(__engine[currentCommand].argsSize[currentParam]<<1);
+        LOG("currentParam %d, sizeOfParameter %d, sizeInBytes %d Current %d\n",
+            currentParam, sizeOfParameter, sizeInBytes, current);
         if(current == '\n') {
             if(currentParamIndex == sizeInBytes && (__engine[currentCommand].numberOfArgs == currentParam + 1)) {
                 OK();
@@ -236,8 +242,10 @@ void __stateMachineDigest(uint8_t current) {
                 ERROR();
             }
         } else if(ATCheckIsDigit(current) && currentParamIndex < sizeInBytes) {
-            params[currentParam] |= (uint32_t) ATConverterASCIIToUint8(current) << (4 * (sizeInBytes - currentParamIndex - 1));
+            params[currentParamCount] |= ATConverterASCIIToUint8(current) << (4 * (1 - (currentParamIndex % 2)));
+            currentParamCount += currentParamIndex % 2;
             currentParamIndex++;
+            LOG("Param %d, value %d, at %d\n", params[currentParamCount], ATConverterASCIIToUint8(current) << (4 * (1 - (currentParamIndex % 2))), currentParamCount);
         } else if(currentParamIndex == sizeInBytes) {
             if(__engine[currentCommand].numberOfArgs > currentParam + 1) {
                 if(current == ','){

@@ -2,11 +2,14 @@
 #define SIMPLEAT_H
 #include <stdint.h>
 
-#define AT_MAX_NUMBER_OF_ARGS 4
-#define CLIENT_FUNCTION_TYPE uint16_t
+#define AT_MAX_NUMBER_OF_ARGS 40 /*In bytes*/
+#define AT_MAX_SIZE_STRING 20
+#define CLIENT_FUNCTION_TYPE uint8_t
 #define ECHO_MODE_ON 1
+#define VERBOSE_MODE_ON 0
 
 #define AT_NO_ARGS {0}
+#define AT_TYPE_STRING AT_MAX_SIZE_STRING
 #define AT_ARGS(...) {__VA_ARGS__, -1}
 #define AT_TYPE(x) ((uint8_t) sizeof (x))
 #define AT_COMMAND(name, args, client) {(char*)#name, 0, args , 0, client}
@@ -18,7 +21,7 @@ typedef struct {
     uint8_t sizeOfCommand;
     int8_t argsSize[AT_MAX_NUMBER_OF_ARGS];
     uint8_t numberOfArgs;
-    void (*client)(const CLIENT_FUNCTION_TYPE*);
+    void (*client)(const uint8_t*);
 } ATCommandDescriptor;
 
 void ATEngineDriverInit(uint8_t (*open)(void),
