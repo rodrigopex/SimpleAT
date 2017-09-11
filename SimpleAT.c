@@ -262,6 +262,7 @@ void __stateMachineDigest(uint8_t current) {
     }
         break;
     case 255:
+        LOG("State cleanning...\n");
         if(current == '\n') { //cleaning input...
             state = 0;
             ERROR();
