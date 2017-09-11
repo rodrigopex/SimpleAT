@@ -2,11 +2,11 @@
 static ATCommandDescriptor *__engine;
 static uint8_t __sizeOfEngine;
 
-#if 0
+#if VERBOSE_MODE_ON
 #include<stdio.h>
-#define LOG(x) printf(x)
+#define LOG(...) printf(__VA_ARGS__)
 #else
-#define LOG(x)
+#define LOG(...)
 #endif
 
 
