@@ -295,7 +295,7 @@ uint8_t ATEngineRun() { /* Used for polling way to do*/
     return 1;
 }
 
-void ATHandle(uint8_t data) { /* Used for interrupt way to do*/
+void ATReadInterruptHandle(uint8_t data) { /* Used for interrupt way to do*/
     __stateMachineDigest(data);
 }
 
