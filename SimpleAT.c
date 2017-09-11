@@ -16,7 +16,7 @@ static uint8_t __sizeOfEngine;
     __write(cmd[i]);\
     }
 #else
-    #define SHOW_COMMAND()
+#define SHOW_COMMAND()
 #endif
 
 /*Driver functions ---------------------*/
@@ -141,12 +141,17 @@ void __stateMachineDigest(uint8_t current) {
     static uint8_t currentParamCount = 0;
     static uint8_t currentParamIndex;
 
+    static uint8_t endOfString = 0;
+
+
+#if ECHO_MODE_ON
     static uint8_t cmd[50] = {0};
     static uint8_t cmdIndex;
     if(state == 0)
         cmdIndex = 0;
     cmd[cmdIndex] = current;
     cmdIndex++;
+#endif
 
     switch(state) {
     case 0:
@@ -213,7 +218,6 @@ void __stateMachineDigest(uint8_t current) {
                   (__engine[currentCommand].command[currentCommandIndex] == current)) {
             currentCommandIndex++;
         } else if(currentCommandIndex == __engine[currentCommand].sizeOfCommand) {
-
             if(current == '=' && __engine[currentCommand].numberOfArgs > 0){
                 state = 5;
                 currentParam = 0;
@@ -229,10 +233,10 @@ void __stateMachineDigest(uint8_t current) {
     }
     case 5: {
         LOG("State 5\n"); // get paramenters
-        uint8_t sizeOfParameter = (uint8_t)__engine[currentCommand].argsSize[currentParam];
         uint8_t sizeInBytes = (uint8_t)(__engine[currentCommand].argsSize[currentParam]<<1);
-        LOG("currentParam %d, sizeOfParameter %d, sizeInBytes %d Current %d\n",
-            currentParam, sizeOfParameter, sizeInBytes, current);
+        //uint8_t sizeOfParameter = (uint8_t)__engine[currentCommand].argsSize[currentParam];
+        LOG("currentParam %d, sizeInBytes %d Current %d\n",
+            currentParam, sizeInBytes, current);
         if(current == '\n') {
             if(currentParamIndex == sizeInBytes && (__engine[currentCommand].numberOfArgs == currentParam + 1)) {
                 OK();
@@ -241,7 +245,15 @@ void __stateMachineDigest(uint8_t current) {
                 state = 0;
                 ERROR();
             }
-        } else if(ATCheckIsDigit(current) && currentParamIndex < sizeInBytes) {
+        } else if(current == '"') {
+            if(currentParamIndex == 0) {
+                //begin of string skip
+                endOfString = 0;
+                state = 6;
+            } else {
+                state = 255;
+            }
+        }else if(ATCheckIsDigit(current) && currentParamIndex < sizeInBytes) {
             params[currentParamCount] |= ATConverterASCIIToUint8(current) << (4 * (1 - (currentParamIndex % 2)));
             currentParamCount += currentParamIndex % 2;
             currentParamIndex++;
@@ -257,10 +269,47 @@ void __stateMachineDigest(uint8_t current) {
             } else {
                 state = 255;
             }
-        }else
+        }else {
             state = 255; //error
-    }
+        }
         break;
+    }
+    case 6: {
+        LOG("State 6\n");
+        if(current == '\n') {
+            if(currentParamIndex == __engine[currentCommand].argsSize[currentParam] && (__engine[currentCommand].numberOfArgs == 1)) {
+                state = 0;
+                OK();
+            } else {
+                LOG("ERROR1\n");
+                state = 0;
+                ERROR();
+            }
+        } else if(current == '"') {
+            if(currentParamIndex < AT_MAX_SIZE_STRING) {
+                //end of string skip and set size of it.
+                __engine[currentCommand].argsSize[currentParam] = (int8_t)currentParamIndex;
+                endOfString = 1;
+                LOG("End of string\n");
+            } else {
+                LOG("ERROR2\n");
+                state = 255;
+            }
+        } else if(current < 128 && currentParamIndex < AT_MAX_SIZE_STRING) {
+            if(endOfString) {
+                LOG("ERROR3\n");
+                state = 255;
+            } else {
+                params[currentParamIndex] = current;
+                currentParamIndex++;
+                LOG("Param %c\n", (char) current);
+            }
+        }  else {
+            LOG("ERROR4\n");
+            state = 255;
+        }
+        break;
+    }
     case 255:
         LOG("State cleanning...\n");
         if(current == '\n') { //cleaning input...
