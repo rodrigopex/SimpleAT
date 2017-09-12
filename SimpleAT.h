@@ -30,8 +30,8 @@ void ATEngineDriverInit(uint8_t (*open)(void),
                         uint8_t (*available)(void));
 
 void ATEngineInit(ATCommandDescriptor *engine,  uint8_t sizeOfEngine);
-uint8_t ATEngineRun();
-void ATReadInterruptHandle(uint8_t data);
+uint8_t ATEnginePollingHandle();
+void ATEngineInterruptHandle(uint8_t data);
 void ATReplyWithByteArray(uint8_t *data, int size);
 void ATReplyWithByte(uint8_t data);
 void ATReplyWithString(char *str);

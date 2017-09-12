@@ -346,14 +346,14 @@ void ATEngineInit(ATCommandDescriptor *engine, uint8_t sizeOfEngine) {
     __open();
 }
 
-uint8_t ATEngineRun() { /* Used for polling way to do*/
+uint8_t ATEnginePollingHandle() { /* Used for polling way to do*/
     while(__available()) {
         __stateMachineDigest(__read());
     }
     return 1;
 }
 
-void ATReadInterruptHandle(uint8_t data) { /* Used for interrupt way to do*/
+void ATEngineInterruptHandle(uint8_t data) { /* Used for interrupt way to do*/
     __stateMachineDigest(data);
 }
 
