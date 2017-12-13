@@ -24,9 +24,7 @@ typedef struct {
     void (*client)(const uint8_t*);
 } ATCommandDescriptor;
 
-void ATEngineDriverInit(uint8_t (*open)(void),
-                        uint8_t (*read)(void),
-                        void (*write)(uint8_t),
+void ATEngineDriverInit(uint8_t (*open)(void), uint8_t (*read)(void), void (*write)(uint8_t),
                         uint8_t (*available)(void));
 
 void ATEngineInit(ATCommandDescriptor *engine, uint8_t sizeOfEngine);

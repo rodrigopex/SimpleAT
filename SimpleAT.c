@@ -1,4 +1,5 @@
 #include "SimpleAT.h"
+
 static ATCommandDescriptor *__engine;
 static uint8_t __sizeOfEngine;
 
@@ -86,7 +87,7 @@ uint8_t ATHexToAscii(uint8_t character)
     }
 }
 
-uint8_t ATCheckIsDigit(uint8_t character)
+uint8_t ATIsDigit(uint8_t character)
 {
     switch (character) {
     case '0':
@@ -129,7 +130,7 @@ uint8_t ATCheckIsDigit(uint8_t character)
 
 #define OK() \
     SHOW_COMMAND()\
-    if(currentCommand >= 0)\
+    if (currentCommand >= 0)\
     (*__engine[currentCommand].client)(params);\
     __write('\n');\
     __write('\n');\
@@ -154,7 +155,7 @@ void __stateMachineDigest(uint8_t current)
 #if ECHO_MODE_ON
     static uint8_t cmd[50] = {0};
     static uint8_t cmdIndex;
-    if(state == 0)
+    if (state == 0)
         cmdIndex = 0;
     cmd[cmdIndex] = current;
     cmdIndex++;
@@ -165,38 +166,40 @@ void __stateMachineDigest(uint8_t current)
         LOG("Wainting for A\n");
         currentCommand = -1;
         currentCommandIndex = 0;
-        for(int i = 0; i < AT_MAX_NUMBER_OF_ARGS; ++i) params[i] = 0; /* Cleanning up params variables*/
-        if(current == 'A')
+        for (int i = 0; i < AT_MAX_NUMBER_OF_ARGS; ++i) params[i] = 0; /* Cleanning up params variables*/
+        if (current == 'A')
             state = STATE_WAIT_T;
         break;
     case STATE_WAIT_T:
         LOG("Wainting for T\n");
-        if(current == 'T')
+        if (current == 'T') {
             state = STATE_WAIT_PLUS;
-        else if(current == '\n') {
-            state = STATE_WAIT_A;
-            ERROR();
-        } else
-            state = STATE_ERROR;
-        break;
-    case STATE_WAIT_PLUS:
-        LOG("Wainting for +\n");
-        if(current == '+'){
-            state = STATE_COMMAND;
-        } else if(current == '\n') {
-            OK();
-            state = STATE_WAIT_A;
-        } else
-            state = STATE_ERROR;
-        break;
-    case STATE_COMMAND:
-        LOG("Wainting for command\n");
-        if(current == '\n') {
+        } else if (current == '\n') {
             state = STATE_WAIT_A;
             ERROR();
         } else {
-            for(uint8_t i = 0; i < __sizeOfEngine; ++i) {
-                if(__engine[i].command[currentCommandIndex] == current) {
+            state = STATE_ERROR;
+        }
+        break;
+    case STATE_WAIT_PLUS:
+        LOG("Wainting for +\n");
+        if (current == '+') {
+            state = STATE_COMMAND;
+        } else if (current == '\n') {
+            OK();
+            state = STATE_WAIT_A;
+        } else {
+            state = STATE_ERROR;
+        }
+        break;
+    case STATE_COMMAND:
+        LOG("Wainting for command\n");
+        if (current == '\n') {
+            state = STATE_WAIT_A;
+            ERROR();
+        } else {
+            for (uint8_t i = 0; i < __sizeOfEngine; ++i) {
+                if (__engine[i].command[currentCommandIndex] == current) {
                     currentCommand = (int8_t) i;
                     currentCommandIndex++;
                     state = STATE_CHECK_COMMAND;
@@ -208,9 +211,9 @@ void __stateMachineDigest(uint8_t current)
         break;
     case STATE_CHECK_COMMAND: {
         LOG("Checking command\n");
-        if(current == '\n') {
-            if(currentCommandIndex == __engine[currentCommand].sizeOfCommand) {
-                if(__engine[currentCommand].numberOfArgs == 0) {
+        if (current == '\n') {
+            if (currentCommandIndex == __engine[currentCommand].sizeOfCommand) {
+                if (__engine[currentCommand].numberOfArgs == 0) {
                     OK();
                     state = STATE_WAIT_A;
                 } else {
@@ -221,11 +224,11 @@ void __stateMachineDigest(uint8_t current)
                 state = STATE_WAIT_A;
                 ERROR();
             }
-        } else if((currentCommandIndex < __engine[currentCommand].sizeOfCommand) &&
-                  (__engine[currentCommand].command[currentCommandIndex] == current)) {
+        } else if ((currentCommandIndex < __engine[currentCommand].sizeOfCommand)
+                   && (__engine[currentCommand].command[currentCommandIndex] == current)) {
             currentCommandIndex++;
-        } else if(currentCommandIndex == __engine[currentCommand].sizeOfCommand) {
-            if(current == '=' && __engine[currentCommand].numberOfArgs > 0){
+        } else if (currentCommandIndex == __engine[currentCommand].sizeOfCommand) {
+            if (current == '=' && __engine[currentCommand].numberOfArgs > 0){
                 state = STATE_PARAMS;
                 currentParam = 0;
                 currentParamCount = 0;
@@ -240,34 +243,35 @@ void __stateMachineDigest(uint8_t current)
     }
     case STATE_PARAMS: {
         LOG("Getting params\n"); // get paramenters
-        uint8_t sizeInBytes = (uint8_t)(__engine[currentCommand].argsSize[currentParam]<<1);
+        uint8_t sizeInBytes = (uint8_t) (__engine[currentCommand].argsSize[currentParam]<<1);
         //uint8_t sizeOfParameter = (uint8_t)__engine[currentCommand].argsSize[currentParam];
         LOG("currentParam %d, sizeInBytes %d Current %d\n",
             currentParam, sizeInBytes, current);
-        if(current == '\n') {
-            if(currentParamIndex == sizeInBytes && (__engine[currentCommand].numberOfArgs == currentParam + 1)) {
+        if (current == '\n') {
+            if (currentParamIndex == sizeInBytes
+                    && (__engine[currentCommand].numberOfArgs == currentParam + 1)) {
                 OK();
                 state = STATE_WAIT_A;
             } else {
                 state = STATE_WAIT_A;
                 ERROR();
             }
-        } else if(current == '"') {
-            if(currentParamIndex == 0) {
+        } else if (current == '"') {
+            if (currentParamIndex == 0) {
                 //begin of string skip
                 endOfString = 0;
                 state = STATE_STRING_PARAM;
             } else {
                 state = STATE_ERROR;
             }
-        }else if(ATCheckIsDigit(current) && currentParamIndex < sizeInBytes) {
+        } else if (ATIsDigit(current) && currentParamIndex < sizeInBytes) {
             params[currentParamCount] |= ATAsciiToHex(current) << (4 * (1 - (currentParamIndex % 2)));
             currentParamCount += currentParamIndex % 2;
             currentParamIndex++;
             LOG("Param %d, value %d, at %d\n", params[currentParamCount], ATAsciiToHex(current) << (4 * (1 - (currentParamIndex % 2))), currentParamCount);
-        } else if(currentParamIndex == sizeInBytes) {
-            if(__engine[currentCommand].numberOfArgs > currentParam + 1) {
-                if(current == ','){
+        } else if (currentParamIndex == sizeInBytes) {
+            if (__engine[currentCommand].numberOfArgs > currentParam + 1) {
+                if (current == ',') {
                     currentParamIndex = 0;
                     currentParam++;
                 } else {
@@ -276,15 +280,16 @@ void __stateMachineDigest(uint8_t current)
             } else {
                 state = STATE_ERROR;
             }
-        }else {
+        } else {
             state = STATE_ERROR;
         }
         break;
     }
     case STATE_STRING_PARAM: {
         LOG("Getting string param\n");
-        if(current == '\n') {
-            if(currentParamIndex == __engine[currentCommand].argsSize[currentParam] && (__engine[currentCommand].numberOfArgs == 1)) {
+        if (current == '\n') {
+            if (currentParamIndex == __engine[currentCommand].argsSize[currentParam]
+                    && (__engine[currentCommand].numberOfArgs == 1)) {
                 state = STATE_WAIT_A;
                 OK();
             } else {
@@ -292,8 +297,8 @@ void __stateMachineDigest(uint8_t current)
                 state = STATE_WAIT_A;
                 ERROR();
             }
-        } else if(current == '"') {
-            if(currentParamIndex < AT_MAX_SIZE_STRING) {
+        } else if (current == '"') {
+            if (currentParamIndex < AT_MAX_SIZE_STRING) {
                 //end of string skip and set size of it.
                 __engine[currentCommand].argsSize[currentParam] = (int8_t)currentParamIndex;
                 endOfString = 1;
@@ -302,8 +307,8 @@ void __stateMachineDigest(uint8_t current)
                 LOG("ERROR2\n");
                 state = STATE_ERROR;
             }
-        } else if(current < 128 && currentParamIndex < AT_MAX_SIZE_STRING) {
-            if(endOfString) {
+        } else if (current < 128 && currentParamIndex < AT_MAX_SIZE_STRING) {
+            if (endOfString) {
                 LOG("ERROR3\n");
                 state = STATE_ERROR;
             } else {
@@ -319,7 +324,7 @@ void __stateMachineDigest(uint8_t current)
     }
     case STATE_ERROR:
         LOG("State cleanning...\n");
-        if(current == '\n') { //cleaning input...
+        if (current == '\n') { //cleaning input...
             state = STATE_WAIT_A;
             ERROR();
         }
@@ -342,11 +347,11 @@ void ATEngineDriverInit(uint8_t (*open)(void), uint8_t (*read)(void), void (*wri
 void ATEngineInit(ATCommandDescriptor *engine, uint8_t sizeOfEngine)
 {
     __engine = engine;
-    for(int i = 0; i < sizeOfEngine; ++i) {
+    for (int i = 0; i < sizeOfEngine; ++i) {
         int j;
-        for(j = 0; __engine[i].command[j] != '\0'; ++j);
+        for (j = 0; __engine[i].command[j] != '\0'; ++j);
         __engine[i].sizeOfCommand = (uint8_t)j;
-        for(j = 0; __engine[i].argsSize[j] > 0; ++j);
+        for (j = 0; __engine[i].argsSize[j] > 0; ++j);
         __engine[i].numberOfArgs = (uint8_t)j;
     }
     __sizeOfEngine = sizeOfEngine;
@@ -374,14 +379,14 @@ void ATReplyWithByte(uint8_t data)
 
 void ATReplyWithByteArray(uint8_t *msg, int size)
 {
-    for(int i = size - 1; i >=0; --i) {
+    for (int i = size - 1; i >=0; --i) {
         ATReplyWithByte(msg[i]);
     }
 }
 
 void ATReplyWithString(char *str)
 {
-    for(int i = 0; str[i] != '\0'; ++i) __write((uint8_t)str[i]);
+    for (int i = 0; str[i] != '\0'; ++i) __write((uint8_t)str[i]);
 }
 
 void ATReplyWithChar(char c)
