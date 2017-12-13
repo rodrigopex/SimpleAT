@@ -34,19 +34,19 @@ static void (*__write)(uint8_t);
 static uint8_t (*__available)(void);
 /*--------------------------------------*/
 
-uint8_t ATConverterASCIIToUint8(uint8_t character)
+uint8_t ATAsciiToHex(uint8_t character)
 {
     switch (character) {
-    case '0': return 0;
-    case '1': return 1;
-    case '2': return 2;
-    case '3': return 3;
-    case '4': return 4;
-    case '5': return 5;
-    case '6': return 6;
-    case '7': return 7;
-    case '8': return 8;
-    case '9': return 9;
+    case '0': return 0x0;
+    case '1': return 0x1;
+    case '2': return 0x2;
+    case '3': return 0x3;
+    case '4': return 0x4;
+    case '5': return 0x5;
+    case '6': return 0x6;
+    case '7': return 0x7;
+    case '8': return 0x8;
+    case '9': return 0x9;
     case 'a':
     case 'A': return 0xA;
     case 'b':
@@ -63,19 +63,19 @@ uint8_t ATConverterASCIIToUint8(uint8_t character)
     }
 }
 
-uint8_t ATConvertHexToAscii(uint8_t character)
+uint8_t ATHexToAscii(uint8_t character)
 {
     switch (character) {
-    case 0: return '0';
-    case 1: return '1';
-    case 2: return '2';
-    case 3: return '3';
-    case 4: return '4';
-    case 5: return '5';
-    case 6: return '6';
-    case 7: return '7';
-    case 8: return '8';
-    case 9: return '9';
+    case 0x0: return '0';
+    case 0x1: return '1';
+    case 0x2: return '2';
+    case 0x3: return '3';
+    case 0x4: return '4';
+    case 0x5: return '5';
+    case 0x6: return '6';
+    case 0x7: return '7';
+    case 0x8: return '8';
+    case 0x9: return '9';
     case 0xA: return 'A';
     case 0xB: return 'B';
     case 0xC: return 'C';
@@ -261,10 +261,10 @@ void __stateMachineDigest(uint8_t current)
                 state = STATE_ERROR;
             }
         }else if(ATCheckIsDigit(current) && currentParamIndex < sizeInBytes) {
-            params[currentParamCount] |= ATConverterASCIIToUint8(current) << (4 * (1 - (currentParamIndex % 2)));
+            params[currentParamCount] |= ATAsciiToHex(current) << (4 * (1 - (currentParamIndex % 2)));
             currentParamCount += currentParamIndex % 2;
             currentParamIndex++;
-            LOG("Param %d, value %d, at %d\n", params[currentParamCount], ATConverterASCIIToUint8(current) << (4 * (1 - (currentParamIndex % 2))), currentParamCount);
+            LOG("Param %d, value %d, at %d\n", params[currentParamCount], ATAsciiToHex(current) << (4 * (1 - (currentParamIndex % 2))), currentParamCount);
         } else if(currentParamIndex == sizeInBytes) {
             if(__engine[currentCommand].numberOfArgs > currentParam + 1) {
                 if(current == ','){
@@ -368,8 +368,8 @@ void ATEngineInterruptHandle(uint8_t data)
 
 void ATReplyWithByte(uint8_t data)
 {
-    __write(ATConvertHexToAscii((data & 0xF0) >> 4));
-    __write(ATConvertHexToAscii(data & 0x0F));
+    __write(ATHexToAscii((data & 0xF0) >> 4));
+    __write(ATHexToAscii(data & 0x0F));
 }
 
 void ATReplyWithByteArray(uint8_t *msg, int size)

@@ -29,14 +29,12 @@ void ATEngineDriverInit(uint8_t (*open)(void),
                         void (*write)(uint8_t),
                         uint8_t (*available)(void));
 
-void ATEngineInit(ATCommandDescriptor *engine,  uint8_t sizeOfEngine);
+void ATEngineInit(ATCommandDescriptor *engine, uint8_t sizeOfEngine);
 uint8_t ATEnginePollingHandle();
 void ATEngineInterruptHandle(uint8_t data);
 void ATReplyWithByteArray(uint8_t *data, int size);
 void ATReplyWithByte(uint8_t data);
 void ATReplyWithString(char *str);
 void ATReplyWithChar(char c);
-
-
 
 #endif // SIMPLEAT_H
