@@ -29,6 +29,8 @@ static uint8_t __sizeOfEngine;
         ARRAY_LENGTH_VAR(int j = 0, condition, to) \
     }
 
+#define HEX_ARE_EQUAL(a, b) !(a ^ b)
+
 #if ECHO_MODE_ON
 #define SHOW_COMMAND()\
     for(int i = 0; i < cmdIndex; i++) {\
@@ -184,14 +186,14 @@ void __stateMachineDigest(uint8_t current)
         currentCommand = -1;
         currentCommandIndex = 0;
         for (int i = 0; i < AT_MAX_NUMBER_OF_ARGS; ++i) params[i] = 0; /* Cleanning up params variables*/
-        if (current == 'A')
+        if (HEX_ARE_EQUAL(current, 'A'))
             state = STATE_WAIT_T;
         break;
     case STATE_WAIT_T:
         LOG("Wainting for T\n");
-        if (current == 'T') {
+        if (HEX_ARE_EQUAL(current, 'T')) {
             state = STATE_WAIT_PLUS;
-        } else if (current == '\n') {
+        } else if (HEX_ARE_EQUAL(current, '\n')) {
             state = STATE_WAIT_A;
             ERROR();
         } else {
@@ -200,9 +202,9 @@ void __stateMachineDigest(uint8_t current)
         break;
     case STATE_WAIT_PLUS:
         LOG("Wainting for +\n");
-        if (current == '+') {
+        if (HEX_ARE_EQUAL(current, '+')) {
             state = STATE_COMMAND;
-        } else if (current == '\n') {
+        } else if (HEX_ARE_EQUAL(current, '\n')) {
             OK();
             state = STATE_WAIT_A;
         } else {
@@ -212,7 +214,7 @@ void __stateMachineDigest(uint8_t current)
     case STATE_COMMAND:
         LOG("Wainting for command\n");
 #if EXTENDED_COMMANDS_ON
-        if (current == '\n') {
+        if (HEX_ARE_EQUAL(current, '\n')) {
             state = STATE_WAIT_A;
             if (possibleCommandsSize == 1 && currentCommandIndex == __engine[possibleCommands[0]].sizeOfCommand) {
                 if (__engine[possibleCommands[0]].numberOfArgs == 0) {
@@ -243,7 +245,7 @@ void __stateMachineDigest(uint8_t current)
                     && (__engine[possibleCommands[0]].command[currentCommandIndex] == current)) {
                 currentCommandIndex++;
             } else if (currentCommandIndex == __engine[possibleCommands[0]].sizeOfCommand) {
-                if (current == '=' && __engine[possibleCommands[0]].numberOfArgs > 0) {
+                if (HEX_ARE_EQUAL(current, '=') && __engine[possibleCommands[0]].numberOfArgs > 0) {
                     state = STATE_PARAMS;
                     currentCommand = possibleCommands[0];
                     currentParam = 0;
@@ -281,7 +283,7 @@ void __stateMachineDigest(uint8_t current)
         }
         break;
 #else
-        if (current == '\n') {
+        if (HEX_ARE_EQUAL(current, '\n')) {
             state = STATE_WAIT_A;
             ERROR();
         } else {
@@ -298,7 +300,7 @@ void __stateMachineDigest(uint8_t current)
         break;
     case STATE_CHECK_COMMAND: {
         LOG("Checking command\n");
-        if (current == '\n') {
+        if (HEX_ARE_EQUAL(current, '\n')) {
             if (currentCommandIndex == __engine[currentCommand].sizeOfCommand) {
                 if (__engine[currentCommand].numberOfArgs == 0) {
                     OK();
@@ -315,7 +317,7 @@ void __stateMachineDigest(uint8_t current)
                    && (__engine[currentCommand].command[currentCommandIndex] == current)) {
             currentCommandIndex++;
         } else if (currentCommandIndex == __engine[currentCommand].sizeOfCommand) {
-            if (current == '=' && __engine[currentCommand].numberOfArgs > 0) {
+            if (HEX_ARE_EQUAL(current, '=') && __engine[currentCommand].numberOfArgs > 0) {
                 state = STATE_PARAMS;
                 currentParam = 0;
                 currentParamCount = 0;
@@ -334,7 +336,7 @@ void __stateMachineDigest(uint8_t current)
         uint8_t sizeInBytes = (uint8_t) (__engine[currentCommand].argsSize[currentParam] << 1);
         //uint8_t sizeOfParameter = (uint8_t) __engine[currentCommand].argsSize[currentParam];
         LOG("currentParam %d, sizeInBytes %d Current %d\n", currentParam, sizeInBytes, current);
-        if (current == '\n') {
+        if (HEX_ARE_EQUAL(current, '\n')) {
             if (currentParamIndex == sizeInBytes
                     && (__engine[currentCommand].numberOfArgs == currentParam + 1)) {
                 OK();
@@ -343,7 +345,7 @@ void __stateMachineDigest(uint8_t current)
                 state = STATE_WAIT_A;
                 ERROR();
             }
-        } else if (current == '"') {
+        } else if (HEX_ARE_EQUAL(current, '"')) {
             if (currentParamIndex == 0) {
                 //begin of string skip
                 endOfString = 0;
@@ -358,7 +360,7 @@ void __stateMachineDigest(uint8_t current)
             LOG("Param %d, value %d, at %d\n", params[currentParamCount], ATAsciiToHex(current) << (4 * (1 - (currentParamIndex % 2))), currentParamCount);
         } else if (currentParamIndex == sizeInBytes) {
             if (__engine[currentCommand].numberOfArgs > currentParam + 1) {
-                if (current == ',') {
+                if (HEX_ARE_EQUAL(current, ',')) {
                     currentParamIndex = 0;
                     currentParam++;
                 } else {
@@ -374,7 +376,7 @@ void __stateMachineDigest(uint8_t current)
     }
     case STATE_STRING_PARAM: {
         LOG("Getting string param\n");
-        if (current == '\n') {
+        if (HEX_ARE_EQUAL(current, '\n')) {
             if (currentParamIndex == __engine[currentCommand].argsSize[currentParam]
                     && (__engine[currentCommand].numberOfArgs == 1)) {
                 state = STATE_WAIT_A;
@@ -384,7 +386,7 @@ void __stateMachineDigest(uint8_t current)
                 state = STATE_WAIT_A;
                 ERROR();
             }
-        } else if (current == '"') {
+        } else if (HEX_ARE_EQUAL(current, '"')) {
             if (currentParamIndex < AT_MAX_SIZE_STRING) {
                 //end of string skip and set size of it.
                 __engine[currentCommand].argsSize[currentParam] = (int8_t)currentParamIndex;
@@ -411,7 +413,7 @@ void __stateMachineDigest(uint8_t current)
     }
     case STATE_ERROR:
         LOG("State cleanning...\n");
-        if (current == '\n') { //cleaning input...
+        if (HEX_ARE_EQUAL(current, '\n')) { //cleaning input...
             state = STATE_WAIT_A;
             ERROR();
         }
