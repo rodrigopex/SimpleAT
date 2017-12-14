@@ -172,7 +172,7 @@ void __stateMachineDigest(uint8_t current)
 #if ECHO_MODE_ON
     static uint8_t cmd[50] = {0};
     static uint8_t cmdIndex;
-    if (state == 0)
+    if (state == STATE_WAIT_A)
         cmdIndex = 0;
     cmd[cmdIndex] = current;
     cmdIndex++;
