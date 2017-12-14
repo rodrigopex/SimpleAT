@@ -19,6 +19,16 @@ static uint8_t __sizeOfEngine;
 #define STATE_STRING_PARAM 6
 #define STATE_ERROR 255
 
+#define ARRAY_LENGTH_VAR(var, condition, to) \
+    { \
+        for (var; condition; j += 1); \
+        to = j; \
+    }
+#define ARRAY_LENGTH(condition, to) \
+    { \
+        ARRAY_LENGTH_VAR(int j = 0, condition, to) \
+    }
+
 #if ECHO_MODE_ON
 #define SHOW_COMMAND()\
     for(int i = 0; i < cmdIndex; i++) {\
@@ -428,11 +438,9 @@ void ATEngineInit(ATCommandDescriptor *engine, uint8_t sizeOfEngine)
     else __sizeOfEngine = 128;
 
     for (int i = 0; i < __sizeOfEngine; ++i) {
-        int j;
-        for (j = 0; __engine[i].command[j] != '\0'; ++j);
-        __engine[i].sizeOfCommand = (uint8_t)j;
-        for (j = 0; __engine[i].argsSize[j] > 0; ++j);
-        __engine[i].numberOfArgs = (uint8_t)j;
+        uint8_t j;
+        ARRAY_LENGTH_VAR(j = 0, __engine[i].command[j] != '\0', __engine[i].sizeOfCommand)
+        ARRAY_LENGTH_VAR(j = 0, __engine[i].argsSize[j] > 0, __engine[i].numberOfArgs)
     }
     __open();
 }
