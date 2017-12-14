@@ -7,6 +7,7 @@
 #define CLIENT_FUNCTION_TYPE uint8_t
 #define ECHO_MODE_ON 1
 #define VERBOSE_MODE_ON 0
+#define EXTENDED_COMMANDS_ON 0
 
 #define AT_NO_ARGS {0}
 #define AT_TYPE_STRING AT_MAX_SIZE_STRING
@@ -24,19 +25,15 @@ typedef struct {
     void (*client)(const uint8_t*);
 } ATCommandDescriptor;
 
-void ATEngineDriverInit(uint8_t (*open)(void),
-                        uint8_t (*read)(void),
-                        void (*write)(uint8_t),
+void ATEngineDriverInit(uint8_t (*open)(void), uint8_t (*read)(void), void (*write)(uint8_t),
                         uint8_t (*available)(void));
 
-void ATEngineInit(ATCommandDescriptor *engine,  uint8_t sizeOfEngine);
+void ATEngineInit(ATCommandDescriptor *engine, uint8_t sizeOfEngine);
 uint8_t ATEnginePollingHandle();
 void ATEngineInterruptHandle(uint8_t data);
 void ATReplyWithByteArray(uint8_t *data, int size);
 void ATReplyWithByte(uint8_t data);
 void ATReplyWithString(char *str);
 void ATReplyWithChar(char c);
-
-
 
 #endif // SIMPLEAT_H

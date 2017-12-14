@@ -151,7 +151,6 @@ OK
 
 ## Knwon limitations
 
-* The commands cannot begin with the same letter;
-* You can only have up to 256 commands;
+* You can only have up to 128 commands;
 * String command can only have one argument.
 
