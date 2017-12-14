@@ -127,7 +127,6 @@ uint8_t ATIsDigit(uint8_t character)
     __write('R');\
     __write('\n');
 
-
 #define OK() \
     SHOW_COMMAND()\
     if (currentCommand >= 0)\
@@ -151,6 +150,14 @@ void __stateMachineDigest(uint8_t current)
     static uint8_t currentParamIndex;
 
     static uint8_t endOfString = 0;
+
+#if EXTENDED_COMMANDS_ON
+    static uint8_t possibleCommandsSize = 0;
+    static uint8_t possibleCommands[128] = {0};
+#define CLEAR_POSSIBLE_COMMANDS() \
+    for (uint8_t i = 0; i < possibleCommandsSize; i += 1) possibleCommands[i] = 0; \
+    possibleCommandsSize = 0;
+#endif
 
 #if ECHO_MODE_ON
     static uint8_t cmd[50] = {0};
@@ -194,6 +201,76 @@ void __stateMachineDigest(uint8_t current)
         break;
     case STATE_COMMAND:
         LOG("Wainting for command\n");
+#if EXTENDED_COMMANDS_ON
+        if (current == '\n') {
+            state = STATE_WAIT_A;
+            if (possibleCommandsSize == 1 && currentCommandIndex == __engine[possibleCommands[0]].sizeOfCommand) {
+                if (__engine[possibleCommands[0]].numberOfArgs == 0) {
+                    OK();
+                } else {
+                    ERROR();
+                }
+            } else {
+                ERROR();
+            }
+            CLEAR_POSSIBLE_COMMANDS()
+        } else if (possibleCommandsSize == 0) {
+            for (uint8_t i = 0; i < __sizeOfEngine; ++i) {
+                if (__engine[i].command[currentCommandIndex] == current) {
+                    possibleCommands[possibleCommandsSize] = i;
+                    possibleCommandsSize += 1;
+                }
+            }
+            if (possibleCommandsSize == 0) {
+                state = STATE_ERROR;
+                CLEAR_POSSIBLE_COMMANDS()
+                return;
+            } else {
+                currentCommandIndex += 1;
+            }
+        } else if (possibleCommandsSize == 1) {
+            if ((currentCommandIndex < __engine[possibleCommands[0]].sizeOfCommand)
+                    && (__engine[possibleCommands[0]].command[currentCommandIndex] == current)) {
+                currentCommandIndex++;
+            } else if (currentCommandIndex == __engine[possibleCommands[0]].sizeOfCommand) {
+                if (current == '=' && __engine[possibleCommands[0]].numberOfArgs > 0) {
+                    state = STATE_PARAMS;
+                    currentCommand = possibleCommands[0];
+                    currentParam = 0;
+                    currentParamCount = 0;
+                    currentParamIndex = 0;
+                    possibleCommandsSize = 0;
+                } else {
+                    state = STATE_ERROR;
+                }
+                CLEAR_POSSIBLE_COMMANDS()
+            } else {
+                state = STATE_ERROR;
+                CLEAR_POSSIBLE_COMMANDS()
+            }
+        } else {
+            uint8_t i = 0;
+            uint8_t size = possibleCommandsSize;
+            possibleCommandsSize = 0;
+            for (i = 0; i < size; ++i) {
+                if (__engine[possibleCommands[i]].command[currentCommandIndex] == current) {
+                    possibleCommands[possibleCommandsSize] = possibleCommands[i];
+                    possibleCommandsSize += 1;
+                }
+            }
+            if (possibleCommandsSize == 0) {
+                state = STATE_ERROR;
+                CLEAR_POSSIBLE_COMMANDS()
+                return;
+            } else {
+                currentCommandIndex += 1;
+            }
+            for (i = possibleCommandsSize; i < size; ++i) {
+                possibleCommands[i] = 0;
+            }
+        }
+        break;
+#else
         if (current == '\n') {
             state = STATE_WAIT_A;
             ERROR();
@@ -228,7 +305,7 @@ void __stateMachineDigest(uint8_t current)
                    && (__engine[currentCommand].command[currentCommandIndex] == current)) {
             currentCommandIndex++;
         } else if (currentCommandIndex == __engine[currentCommand].sizeOfCommand) {
-            if (current == '=' && __engine[currentCommand].numberOfArgs > 0){
+            if (current == '=' && __engine[currentCommand].numberOfArgs > 0) {
                 state = STATE_PARAMS;
                 currentParam = 0;
                 currentParamCount = 0;
@@ -241,12 +318,12 @@ void __stateMachineDigest(uint8_t current)
         }
         break;
     }
+#endif
     case STATE_PARAMS: {
         LOG("Getting params\n"); // get paramenters
-        uint8_t sizeInBytes = (uint8_t) (__engine[currentCommand].argsSize[currentParam]<<1);
-        //uint8_t sizeOfParameter = (uint8_t)__engine[currentCommand].argsSize[currentParam];
-        LOG("currentParam %d, sizeInBytes %d Current %d\n",
-            currentParam, sizeInBytes, current);
+        uint8_t sizeInBytes = (uint8_t) (__engine[currentCommand].argsSize[currentParam] << 1);
+        //uint8_t sizeOfParameter = (uint8_t) __engine[currentCommand].argsSize[currentParam];
+        LOG("currentParam %d, sizeInBytes %d Current %d\n", currentParam, sizeInBytes, current);
         if (current == '\n') {
             if (currentParamIndex == sizeInBytes
                     && (__engine[currentCommand].numberOfArgs == currentParam + 1)) {
@@ -332,7 +409,6 @@ void __stateMachineDigest(uint8_t current)
     default:
         ERROR();
     }
-
 }
 
 void ATEngineDriverInit(uint8_t (*open)(void), uint8_t (*read)(void), void (*write)(uint8_t),
@@ -347,19 +423,23 @@ void ATEngineDriverInit(uint8_t (*open)(void), uint8_t (*read)(void), void (*wri
 void ATEngineInit(ATCommandDescriptor *engine, uint8_t sizeOfEngine)
 {
     __engine = engine;
-    for (int i = 0; i < sizeOfEngine; ++i) {
+
+    if (sizeOfEngine < 128) __sizeOfEngine = sizeOfEngine;
+    else __sizeOfEngine = 128;
+
+    for (int i = 0; i < __sizeOfEngine; ++i) {
         int j;
         for (j = 0; __engine[i].command[j] != '\0'; ++j);
         __engine[i].sizeOfCommand = (uint8_t)j;
         for (j = 0; __engine[i].argsSize[j] > 0; ++j);
         __engine[i].numberOfArgs = (uint8_t)j;
     }
-    __sizeOfEngine = sizeOfEngine;
     __open();
 }
 
+// Used for polling way to do
 uint8_t ATEnginePollingHandle()
-{ /* Used for polling way to do*/
+{
     while(__available()) {
         __stateMachineDigest(__read());
     }

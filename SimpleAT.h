@@ -7,6 +7,7 @@
 #define CLIENT_FUNCTION_TYPE uint8_t
 #define ECHO_MODE_ON 1
 #define VERBOSE_MODE_ON 0
+#define EXTENDED_COMMANDS_ON 0
 
 #define AT_NO_ARGS {0}
 #define AT_TYPE_STRING AT_MAX_SIZE_STRING
