@@ -10,15 +10,6 @@ static uint8_t __sizeOfEngine;
 #define LOG(...)
 #endif
 
-//#define STATE_WAIT_A 0
-//#define STATE_WAIT_T 1
-//#define STATE_WAIT_PLUS 2
-//#define STATE_COMMAND 3
-//#define STATE_CHECK_COMMAND 4
-//#define STATE_PARAMS 5
-//#define STATE_STRING_PARAM 6
-//#define STATE_ERROR 255
-
 #define MAX_COMMAND_BASE_STRING_SIZE 50
 #define MAX_COMMAND_SIZE 250
 #define END_OF_COMMAND '!'
@@ -32,26 +23,6 @@ typedef enum {
 } ATEngineState;
 
 
-//#define ARRAY_LENGTH_VAR(var, condition, to) \
-//    { \
-//        for (var; condition; j += 1); \
-//        to = j; \
-//    }
-//#define ARRAY_LENGTH(condition, to) \
-//    { \
-//        ARRAY_LENGTH_VAR(int j = 0, condition, to) \
-//    }
-
-
-#if ECHO_MODE_ON
-#define SHOW_COMMAND(cmd)\
-    for(int i = 0, char * cursor = AY; i < cmd.commandString; i++) {\
-    __write(cmd[i]);\
-    }
-#else
-#define SHOW_COMMAND()
-#endif
-
 char *AYCommandGetBaseString(AYCommand *cmd) {
     char *baseStringRef = 0;
     if(cmd->commandString[2] == '+') {
@@ -61,6 +32,7 @@ char *AYCommandGetBaseString(AYCommand *cmd) {
 }
 
 char *AYCommandGetArgAtIndex(AYCommand *cmd, uint8_t index) {
+    //    LOG(__FUNCTION__);
     char *baseStringRef = 0;
     if(index < cmd->numberOfArgs) {
         int8_t count = -1;
@@ -68,7 +40,8 @@ char *AYCommandGetArgAtIndex(AYCommand *cmd, uint8_t index) {
             if(*cursor == 0) {
                 count++;
                 if(count == index) {
-                    baseStringRef = cursor + 1;
+                    if(*(cursor+1) != END_OF_COMMAND)
+                        baseStringRef = cursor + 1;
                     break;
                 }
             }
@@ -166,36 +139,6 @@ uint8_t ATIsDigit(uint8_t character)
     }
 }
 
-//#define ERROR() \
-//    SHOW_COMMAND()\
-//    __write('\n');\
-//    __write('\n');\
-//    __write('E');\
-//    __write('R');\
-//    __write('R');\
-//    __write('O');\
-//    __write('R');\
-//    __write('\n');
-
-//#define OK() \
-//    SHOW_COMMAND()\
-//    __write('\n');\
-//    __write('\n');\
-//    __write('O');\
-//    __write('K');\
-//    __write('\n');
-
-//#define OK() \
-//    SHOW_COMMAND()\
-//    if (currentCommand >= 0)\
-//    (*__engine[currentCommand].client)(params);\
-//    __write('\n');\
-//    __write('\n');\
-//    __write('O');\
-//    __write('K');\
-//    __write('\n');
-
-#include <stdio.h>
 void __stateMachineDigest(uint8_t current) {
     static uint8_t state = 0;
     static char commandBuffer[MAX_COMMAND_SIZE];
@@ -217,21 +160,40 @@ void __stateMachineDigest(uint8_t current) {
         *commandBufferCursor = END_OF_COMMAND;
     case kParsing:
         AYCommandDigest(&command);
+#ifdef ECHO_MODE_ON
         ATReplyWithString(command.commandString);
-        ATReplyWithString("=");
-        for(int i = 0; i < command.numberOfArgs; ++i) {
-            ATReplyWithString(AYCommandGetArgAtIndex(&command, i));
-            ATReplyWithString(",");
+        if(command.numberOfArgs > 0) {
+            ATReplyWithString("=");
+            for(int i = 0; i < command.numberOfArgs; ++i) {
+                if(i > 0) ATReplyWithString(",");
+                ATReplyWithString(AYCommandGetArgAtIndex(&command, i));
+            }
         }
-        //TODO: Check command
-    case kCallingClient:
-        //TODO: Call client
-        ATReplyWithString("\n\nOK\n");
+        ATReplyWithString("\n");
+#endif
+        ATCommandDescriptor *currentCommand = 0;
+        for(int i = 0; __engine[i].client != 0; ++i) {
+            //LOG("%d, %d\n", command.numberOfArgs, __engine[i].numberOfArgs);
+            //LOG("%s, %s\n", AYCommandGetBaseString(&command), __engine[i].command);
+            if(command.numberOfArgs == __engine[i].numberOfArgs
+                    && AYStringCompare(AYCommandGetBaseString(&command), __engine[i].command)) {
+                currentCommand = &__engine[i];
+                break;
+            }
+        }
+        if(currentCommand) {
+            (currentCommand->client)(&command);
+            ATReplyWithString("\n\nOK\n");
+        } else {
+            if(AYStringCompare(command.commandString, "AT")) {
+                ATReplyWithString("\n\nOK\n");
+            } else {
+                ATReplyWithString("\n\nERROR\n");
+            }
+        }
         state = kInit;
-        break;
-    case kReportError:
     default:
-        ATReplyWithString("\n\nERROR\n");
+        //TODO: check the unknown state
         break;
     }
 }
@@ -523,15 +485,6 @@ void ATEngineDriverInit(uint8_t (*open)(void), uint8_t (*read)(void), void (*wri
 void ATEngineInit(ATCommandDescriptor *engine)
 {
     __engine = engine;
-
-//    if (sizeOfEngine < 128) __sizeOfEngine = sizeOfEngine;
-//    else __sizeOfEngine = 128;
-
-//    for (int i = 0; i < __sizeOfEngine; ++i) {
-//        uint8_t j;
-//        ARRAY_LENGTH_VAR(j = 0, __engine[i].command[j] != '\0', __engine[i].sizeOfCommand)
-//        ARRAY_LENGTH_VAR(j = 0, __engine[i].argsSize[j] > 0, __engine[i].numberOfArgs)
-//    }
     __open();
 }
 
@@ -555,6 +508,7 @@ void ATReplyWithByte(uint8_t data)
     __write(ATHexToAscii(data & 0x0F));
 }
 
+
 void ATReplyWithByteArray(uint8_t *msg, int size)
 {
     for (int i = size - 1; i >=0; --i) {
@@ -564,7 +518,9 @@ void ATReplyWithByteArray(uint8_t *msg, int size)
 
 void ATReplyWithString(char *str)
 {
-    for (int i = 0; str[i] != '\0'; ++i) __write((uint8_t)str[i]);
+    if(str) {
+        for (int i = 0; str[i] != '\0'; ++i) __write((uint8_t)str[i]);
+    }
 }
 
 void ATReplyWithChar(char c)
@@ -574,24 +530,55 @@ void ATReplyWithChar(char c)
 
 
 uint8_t AYStringCompare(char *str1, char *str2) {
+    //    LOG(__FUNCTION__);
     uint8_t result = 0;
-    for(char *cStr1 = str1, *cStr2 = str2; *cStr1 == *cStr2; cStr1++, cStr2++) {
-        if(*cStr1 == 0) {
-            result = 1;
+    if(str1 && str2) {
+        for(char *cStr1 = str1, *cStr2 = str2; *cStr1 == *cStr2; cStr1++, cStr2++) {
+            if(*cStr1 == 0) {
+                result = 1;
+                break;
+            }
         }
+    } else if(str1 == 0 && str2 == 0) {
+        result = 1;
     }
     return result;
 }
 
 void AYCommandDigest(AYCommand *aDesc)
 {
+    //    LOG(__FUNCTION__);
     aDesc->numberOfArgs = 0;
     char *cursor = aDesc->commandString;
-    for(; *cursor != END_OF_COMMAND; ++cursor) {
+    uint8_t sizeOfArg = 0;
+    for(; *cursor != END_OF_COMMAND; ++cursor, ++sizeOfArg) {
         if(*cursor == '=' || *cursor == ',') {
             *cursor = 0;
             ++aDesc->numberOfArgs;
         }
     }
     *cursor = 0; /* replaces the end of line at the end*/
+}
+
+uint16_t AYStringLength(char *str) {
+    //    LOG(__FUNCTION__);
+    uint16_t length = 0;
+    if(str) {
+        for(; str[length] != 0; ++length) {}
+        if(length >= 1) --length;
+    }
+    return length;
+}
+
+uint64_t AYStringToNumber(char *str)
+{
+    //    LOG(__FUNCTION__);
+    uint64_t result = 0;
+    int strLen = AYStringLength(str);
+    if(strLen) {
+        for(int i = strLen; i >= 0; --i) {
+            result += ATAsciiToHex(str[i]) << ((strLen - i) << 2);
+        }
+    }
+    return result;
 }

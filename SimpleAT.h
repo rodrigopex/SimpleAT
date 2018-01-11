@@ -2,45 +2,44 @@
 #define SIMPLEAT_H
 #include <stdint.h>
 
-#define AT_MAX_NUMBER_OF_ARGS 40 /*In bytes*/
-#define AT_MAX_SIZE_STRING 20
-#define CLIENT_FUNCTION_TYPE uint8_t
 #define ECHO_MODE_ON 1
-#define VERBOSE_MODE_ON 0
-#define EXTENDED_COMMANDS_ON 0
+#define VERBOSE_MODE_ON 1
 
-#define AT_NO_ARGS {0}
-#define AT_TYPE_STRING AT_MAX_SIZE_STRING
-#define AT_ARGS(...) {__VA_ARGS__, -1}
-#define AT_TYPE(x) ((uint8_t) sizeof (x))
 #define AT_COMMAND(name, args, client) {(char*)#name, args, client}
+#define AT_END_OF_COMMANDS {"AT", 0, 0}
 
 #define ATReplyByteArray(x) ((uint8_t *) &x), sizeof(x)
-
-typedef struct {
-    char *command;
-    uint8_t numberOfArgs;
-    void (*client)(const uint8_t*);
-} ATCommandDescriptor;
+#define ATReplyWithNumber(x) ATReplyWithByteArray(ATReplyByteArray(x));
 
 typedef struct {
     char *commandString;
     uint8_t numberOfArgs;
 } AYCommand;
 
+typedef struct {
+    char *command;
+    uint8_t numberOfArgs;
+    void (*client)(AYCommand*);
+} ATCommandDescriptor;
 
 void ATEngineDriverInit(uint8_t (*open)(void), uint8_t (*read)(void), void (*write)(uint8_t),
                         uint8_t (*available)(void));
-
 void ATEngineInit(ATCommandDescriptor *engine);
 uint8_t ATEnginePollingHandle();
+void ATEngineInterruptHandle(uint8_t data);
 
 void AYCommandDigest(AYCommand *aDesc);
+char *AYCommandGetArgAtIndex(AYCommand *cmd, uint8_t index);
+char *AYCommandGetBaseString(AYCommand *cmd);
 
-void ATEngineInterruptHandle(uint8_t data);
+
 void ATReplyWithByteArray(uint8_t *data, int size);
 void ATReplyWithByte(uint8_t data);
 void ATReplyWithString(char *str);
 void ATReplyWithChar(char c);
+
+uint8_t AYStringCompare(char *str1, char *str2);
+uint64_t AYStringToNumber(char *str);
+uint16_t AYStringLength(char *str);
 
 #endif // SIMPLEAT_H
