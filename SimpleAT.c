@@ -180,6 +180,7 @@ void __stateMachineDigest(uint8_t current) {
                     && AYStringCompare(AYCommandGetBaseString(&command), __engine[i].command)) {
                 currentCommand = &__engine[i];
                 break;
+
             }
         }
         if(currentCommand) {
