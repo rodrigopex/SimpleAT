@@ -8,8 +8,7 @@
 #define AT_COMMAND(name, args, client) {(char*)#name, args, client}
 #define AT_END_OF_COMMANDS {"AT", 0, 0}
 
-#define ATReplyByteArray(x) ((uint8_t *) &x), sizeof(x)
-#define ATReplyWithNumber(x) ATReplyWithByteArray(ATReplyByteArray(x));
+//#define ATReplyByteArray(x) ((uint8_t *) &x), sizeof(x)
 
 typedef struct {
     char *commandString;
@@ -31,12 +30,14 @@ void ATEngineInterruptHandle(uint8_t data);
 void AYCommandDigest(AYCommand *aDesc);
 char *AYCommandGetArgAtIndex(AYCommand *cmd, uint16_t index);
 char *AYCommandGetBaseString(AYCommand *cmd);
-
+uint16_t AYCommandGetNumberOfArgs(AYCommand *cmd);
 
 void ATReplyWithByteArray(uint8_t *data, int size);
 void ATReplyWithByte(uint8_t data);
 void ATReplyWithString(char *str);
 void ATReplyWithChar(char c);
+void ATReplyWithNumberWithSize(uint64_t number, int size);
+#define ATReplyWithNumber(x) ATReplyWithNumberWithSize(x, sizeof(x));
 
 uint8_t AYStringCompare(char *str1, char *str2);
 uint64_t AYStringToNumber(char *str);

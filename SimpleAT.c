@@ -242,6 +242,10 @@ void ATReplyWithByteArray(uint8_t *msg, int size)
     }
 }
 
+void ATReplyWithNumberWithSize(uint64_t number, int size) {
+    ATReplyWithByteArray((uint8_t *) &number, size);
+}
+
 void ATReplyWithString(char *str)
 {
     if(str) {
@@ -307,4 +311,9 @@ uint64_t AYStringToNumber(char *str)
         }
     }
     return result;
+}
+
+uint16_t AYCommandGetNumberOfArgs(AYCommand *cmd)
+{
+    return cmd->numberOfArgs;
 }
