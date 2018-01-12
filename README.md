@@ -5,6 +5,18 @@ To use this lib you must to do:
 * Download the SimpleAT.h and SimpleAT.c to your source code;
 * Implement the driver to read, write, check availability and open the UART module at your system;
 * Initialize the driver using the ATEngineDriverInit function passing the above mentioned functions related to the UART;
+
+```C
+uint8_t open();
+
+void write(uint8_t data);
+
+uint8_t available();
+
+uint8_t read();
+```
+
+
 * Define the command list as the below example.
 * Initialize the AT engine passing the pointer to the command list the its size to the function ATEngineInit;
 * Run it in a polling nonblocking way by using the function ATEnginePollingRun() that always returns true. It can be used at the condition of the while true or inside it. Or using interrupt when there is data available at the uart buffer you can call ATEngineInterruptHandle(...) instead of using the pooling one.
