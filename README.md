@@ -59,13 +59,6 @@ void writeClient(AYCommand *cmd)
 }
 
 int main(int argc, char **argv) {
-    /* Commando to test the lib
-    * ./build/SimpleATTest "$(cat test.cmd)" > test.log && diff test.log test.log_ok
-    *
-    * If there is difference there error.
-    */
-    //testStringCmp();
-
     if(StubInit(argc, argv)) return 1;
 
     ATEngineDriverInit(StubOpen,
