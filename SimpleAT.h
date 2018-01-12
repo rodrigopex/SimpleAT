@@ -13,7 +13,7 @@
 
 typedef struct {
     char *commandString;
-    uint8_t numberOfArgs;
+    uint16_t numberOfArgs;
 } AYCommand;
 
 typedef struct {
@@ -29,7 +29,7 @@ uint8_t ATEnginePollingHandle();
 void ATEngineInterruptHandle(uint8_t data);
 
 void AYCommandDigest(AYCommand *aDesc);
-char *AYCommandGetArgAtIndex(AYCommand *cmd, uint8_t index);
+char *AYCommandGetArgAtIndex(AYCommand *cmd, uint16_t index);
 char *AYCommandGetBaseString(AYCommand *cmd);
 
 
