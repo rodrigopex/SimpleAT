@@ -3,12 +3,10 @@
 #include <stdint.h>
 
 #define ECHO_MODE_ON 1
-#define VERBOSE_MODE_ON 1
+#define VERBOSE_MODE_ON 0
 
 #define AT_COMMAND(name, args, client) {(char*)#name, args, client}
 #define AT_END_OF_COMMANDS {"AT", 0, 0}
-
-//#define ATReplyByteArray(x) ((uint8_t *) &x), sizeof(x)
 
 typedef struct {
     char *commandString;
@@ -23,7 +21,7 @@ typedef struct {
 
 void ATEngineDriverInit(uint8_t (*open)(void), uint8_t (*read)(void), void (*write)(uint8_t),
                         uint8_t (*available)(void));
-void ATEngineInit(ATCommandDescriptor *engine);
+void ATEngineInit(const ATCommandDescriptor *engine);
 uint8_t ATEnginePollingHandle();
 void ATEngineInterruptHandle(uint8_t data);
 
@@ -40,7 +38,8 @@ void ATReplyWithNumberWithSize(uint64_t number, int size);
 #define ATReplyWithNumber(x) ATReplyWithNumberWithSize(x, sizeof(x));
 
 uint8_t AYStringCompare(char *str1, char *str2);
-uint64_t AYStringToNumber(char *str);
+uint64_t AYHexStringToNumber(char *str);
 uint16_t AYStringLength(char *str);
+uint8_t AYStringStartsWithString(char *str, char *other);
 
 #endif // SIMPLEAT_H
