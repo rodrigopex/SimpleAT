@@ -1,7 +1,6 @@
 #include "SimpleAT.h"
 
-static ATCommandDescriptor *__engine;
-static uint8_t __sizeOfEngine;
+static const ATCommandDescriptor *__engine;
 
 #if VERBOSE_MODE_ON
 #include<stdio.h>
@@ -12,7 +11,7 @@ static uint8_t __sizeOfEngine;
 
 #define MAX_COMMAND_BASE_STRING_SIZE 50
 #define MAX_COMMAND_SIZE 250
-#define END_OF_COMMAND '!'
+#define END_OF_COMMAND '\n'
 
 typedef enum {
     kInit,
@@ -25,15 +24,33 @@ typedef enum {
 
 char *AYCommandGetBaseString(AYCommand *cmd) {
     char *baseStringRef = 0;
-    if(cmd->commandString[2] == '+') {
+    if(AYStringLength(cmd->commandString) > 3 && cmd->commandString[2] == '+') {
         baseStringRef = cmd->commandString + 3;
     }
     return baseStringRef;
 }
 
+
+uint8_t AYStringStartsWithString(char *str, char *other) {
+    uint8_t result = 0;
+    uint16_t lengthOfOther = AYStringLength(other);
+    if(AYStringLength(str) >= lengthOfOther) {
+        int i = 0;
+        for(; i < lengthOfOther; ++i) {
+            if(str[i] != other[i]) {
+                break;
+            }
+        }
+        if(i == lengthOfOther) {
+            result = 1;
+        }
+    }
+    return result;
+}
+
 char *AYCommandGetArgAtIndex(AYCommand *cmd, uint16_t index)
 {
-    //    LOG(__FUNCTION__);
+    LOG(__FUNCTION__);
     char *baseStringRef = 0;
     if(index < cmd->numberOfArgs) {
         int8_t count = -1;
@@ -172,15 +189,15 @@ void __stateMachineDigest(uint8_t current) {
         }
         ATReplyWithString("\n");
 #endif
-        ATCommandDescriptor *currentCommand = 0;
-        for(int i = 0; __engine[i].client != 0; ++i) {
-            //LOG("%d, %d\n", command.numberOfArgs, __engine[i].numberOfArgs);
-            //LOG("%s, %s\n", AYCommandGetBaseString(&command), __engine[i].command);
-            if(command.numberOfArgs == __engine[i].numberOfArgs
-                    && AYStringCompare(AYCommandGetBaseString(&command), __engine[i].command)) {
-                currentCommand = &__engine[i];
-                break;
-
+        const ATCommandDescriptor *currentCommand = 0;
+        if(AYStringStartsWithString(command.commandString, "AT")) {
+            for(int i = 0; __engine[i].client != 0; ++i) {
+                LOG("(%d, %s) (%d, %s)\n", command.numberOfArgs,  AYCommandGetBaseString(&command), __engine[i].numberOfArgs, __engine[i].command);
+                if(command.numberOfArgs == __engine[i].numberOfArgs
+                        && AYStringCompare(AYCommandGetBaseString(&command), __engine[i].command)) {
+                    currentCommand = &__engine[i];
+                    break;
+                }
             }
         }
         if(currentCommand) {
@@ -209,7 +226,7 @@ void ATEngineDriverInit(uint8_t (*open)(void), uint8_t (*read)(void), void (*wri
     __available = available;
 }
 
-void ATEngineInit(ATCommandDescriptor *engine)
+void ATEngineInit(const ATCommandDescriptor *engine)
 {
     __engine = engine;
     __open();
@@ -261,7 +278,7 @@ void ATReplyWithChar(char c)
 
 
 uint8_t AYStringCompare(char *str1, char *str2) {
-    //    LOG(__FUNCTION__);
+    LOG(__FUNCTION__);
     uint8_t result = 0;
     if(str1 && str2) {
         for(char *cStr1 = str1, *cStr2 = str2; *cStr1 == *cStr2; cStr1++, cStr2++) {
@@ -278,7 +295,7 @@ uint8_t AYStringCompare(char *str1, char *str2) {
 
 void AYCommandDigest(AYCommand *aDesc)
 {
-    //    LOG(__FUNCTION__);
+    LOG(__FUNCTION__);
     aDesc->numberOfArgs = 0;
     char *cursor = aDesc->commandString;
     uint16_t sizeOfArg = 0;
@@ -292,21 +309,23 @@ void AYCommandDigest(AYCommand *aDesc)
 }
 
 uint16_t AYStringLength(char *str) {
-    //    LOG(__FUNCTION__);
+    LOG(__FUNCTION__);
     uint16_t length = 0;
     if(str) {
         for(; str[length] != 0; ++length) {}
-        if(length >= 1) --length;
     }
     return length;
 }
 
-uint64_t AYStringToNumber(char *str)
+uint64_t AYHexStringToNumber(char *str)
 {
-    //    LOG(__FUNCTION__);
+    LOG(__FUNCTION__);
     uint64_t result = 0;
     int strLen = AYStringLength(str);
-    if(strLen) {
+    if(strLen == 1) {
+        result = ATAsciiToHex(*str);
+    } else if(strLen > 1) {
+        strLen--;
         for(int i = strLen; i >= 0; --i) {
             result += ATAsciiToHex(str[i]) << ((strLen - i) << 2);
         }
